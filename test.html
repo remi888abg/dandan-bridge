@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{font-family:sans-serif;padding:20px;background:#eef2ff}#status{padding:16px;border-radius:12px;margin:10px 0}.ok{background:#d1fae5;color:#065f46}.err{background:#fee2e2;color:#991b1b}</style></head>
+<body>
+<h2>诊断页面</h2>
+<div id="status">正在检测...</div>
+<div id="details"></div>
+<script>
+var out = document.getElementById('status');
+var det = document.getElementById('details');
+
+function log(msg, ok) {
+  var d = document.createElement('div');
+  d.className = ok ? 'ok' : 'err';
+  d.style.cssText = 'padding:12px;border-radius:8px;margin:6px 0';
+  d.textContent = (ok ? 'OK ' : 'FAIL ') + msg;
+  det.appendChild(d);
+}
+
+try {
+  log('JS 执行正常', true);
+  log('typeof init = ' + typeof init, typeof init === 'function');
+  log('navigator.onLine = ' + navigator.onLine, true);
+
+  var testDB = indexedDB.open('test_diag', 1);
+  testDB.onsuccess = function() {
+    log('IndexedDB 可用', true);
+    try {
+      var el = document.getElementById('presetFiles');
+      log('presetFiles 元素存在: ' + (el !== null), el !== null);
+      el = document.getElementById('presetBank');
+      log('presetBank 元素存在: ' + (el !== null), el !== null);
+    } catch(e) {
+      log('DOM 检查出错: ' + e.message, false);
+    }
+    out.textContent = '诊断完成 - ' + new Date().toLocaleTimeString();
+    out.className = 'ok';
+  };
+  testDB.onerror = function(e) {
+    log('IndexedDB 不可用: ' + (e.target.error && e.target.error.message || 'unknown'), false);
+    out.textContent = '诊断失败 - IndexedDB 不可用';
+    out.className = 'err';
+  };
+} catch(e) {
+  log('JS 执行错误: ' + e.message, false);
+  out.textContent = '诊断失败 - JS 错误';
+  out.className = 'err';
+}
+</script>
+</body></html>
