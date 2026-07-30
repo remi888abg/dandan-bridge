@@ -1,0 +1,25 @@
+{
+  "name": "蛋蛋桥牌复习",
+  "short_name": "蛋蛋桥牌",
+  "description": "新睿CCBA · 现代自然二盖一(2/1) 桥牌离线复习与自测平台",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef2ff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
