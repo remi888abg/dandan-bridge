@@ -1,6 +1,6 @@
 // Service Worker：单文件离线版专用。缓存应用外壳 + 主 HTML，实现“添加到主屏幕后离线可用”
 // 策略：stale-while-revalidate（先返回缓存，同时后台刷新缓存），保证离线即时可用、线上更新能自动下发
-const CACHE = 'dandan-bridge-offline-v15';
+const CACHE = 'dandan-bridge-offline-v16';
 const PRECACHE = ['./manifest.webmanifest', './icon-192.png', './icon-512.png', './favicon.ico'];
 
 self.addEventListener('install', (e) => {
