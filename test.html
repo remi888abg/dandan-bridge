@@ -1,51 +1,36 @@
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{font-family:sans-serif;padding:16px;background:#eef2ff;font-size:14px}.log{padding:8px;border-radius:8px;margin:4px 0;font-family:monospace;font-size:12px;word-break:break-all}.ok{background:#d1fae5;color:#065f46}.err{background:#fee2e2;color:#991b1b}.warn{background:#fef3c7;color:#92400e}</style></head>
+<style>body{font-family:sans-serif;padding:16px;background:#eef2ff;font-size:13px}.log{padding:8px;border-radius:8px;margin:4px 0;font-family:monospace;font-size:11px;word-break:break-all}.ok{background:#d1fae5}.err{background:#fee2e2}.warn{background:#fef3c7}</style></head>
 <body>
-<h3>主页面诊断 v2</h3>
+<h3>主页面诊断 v3</h3>
 <div id="out"></div>
 <script>
 var out = document.getElementById('out');
-function log(msg, cls) {
-  var d = document.createElement('div');
-  d.className = 'log ' + (cls||'ok');
-  d.textContent = msg;
-  out.appendChild(d);
+function log(msg, cls) { var d = document.createElement('div'); d.className = 'log '+(cls||'ok'); d.textContent = msg; out.appendChild(d); }
+
+function checkRange(url, start, end, label) {
+  return fetch(url, {headers: {'Range': 'bytes=' + start + '-' + end}})
+    .then(function(r) {
+      log(label + ' HTTP ' + r.status + ' Content-Length: ' + r.headers.get('content-length'), 'ok');
+      return r.text();
+    })
+    .then(function(text) {
+      log(label + ' 实际 ' + text.length + ' 字符', text.length > 0 ? 'ok' : 'err');
+      log(label + ' 首30: ' + JSON.stringify(text.substr(0, 30)), 'ok');
+      log(label + ' 末30: ' + JSON.stringify(text.substr(-30)), 'ok');
+      log(label + ' 包含 init: ' + (text.indexOf('init') >= 0), text.indexOf('init') >= 0 ? 'ok' : 'err');
+      log(label + ' 包含 presetFiles: ' + (text.indexOf('presetFiles') >= 0), text.indexOf('presetFiles') >= 0 ? 'ok' : 'err');
+    })
+    .catch(function(e) { log(label + ' 失败: ' + e.message, 'err'); });
 }
 
-log('Fetching /dandan-bridge/ ...', 'warn');
-fetch('/dandan-bridge/').then(function(r) {
-  log('HTTP ' + r.status, 'ok');
-  log('Content-Length header: ' + r.headers.get('content-length'), 'ok');
-  return r.text().then(function(text) {
-    log('实际收到字符数: ' + text.length, text.length > 40000000 ? 'ok' : 'err');
-    log('头部包含 <!DOCTYPE>: ' + (text.indexOf('<!DOCTYPE') >= 0), 'ok');
-    log('包含 presetFiles id: ' + (text.indexOf('id="presetFiles"') >= 0), 'err');
-    log('包含 presetBank id: ' + (text.indexOf('id="presetBank"') >= 0), 'err');
-    log('包含 function init: ' + (text.indexOf('function init') >= 0), 'err');
-    log('包含 seedPreset(): ' + (text.indexOf('seedPreset()') >= 0), 'err');
-    log('包含 manifest.webmanifest: ' + (text.indexOf('manifest.webmanifest') >= 0), 'err');
-    log('末尾 50 字符: ' + JSON.stringify(text.substr(-50)), 'ok');
-    log('---', 'warn');
-    log('尝试 iframe 加载主页面...', 'warn');
-    var iframe = document.createElement('iframe');
-    iframe.style.cssText = 'width:1px;height:1px;opacity:0.01;position:absolute';
-    iframe.src = '/dandan-bridge/';
-    document.body.appendChild(iframe);
-    setTimeout(function() {
-      try {
-        var iw = iframe.contentWindow;
-        log('iframe readyState: ' + iw.document.readyState, 'ok');
-        log('iframe typeof init: ' + typeof iw.init, typeof iw.init === 'function' ? 'ok' : 'err');
-        log('iframe 错误数: ' + iw.document.querySelectorAll(".err").length, 'ok');
-        log('iframe presetFiles: ' + !!iw.document.getElementById('presetFiles'), !!iw.document.getElementById('presetFiles') ? 'ok' : 'err');
-      } catch(e) {
-        log('iframe 失败: ' + e.message, 'err');
-      }
-    }, 5000);
-  });
-}).catch(function(e) {
-  log('Fetch 失败: ' + e.message, 'err');
-});
+log('开始分段读取主页面 44.5MB...', 'warn');
+
+// 头部 30KB
+checkRange('/dandan-bridge/', 0, 30000, '头部(0-30K)');
+// 中间 30KB
+setTimeout(function() { checkRange('/dandan-bridge/', 22000000, 22030000, '中部(22M-22.03M)'); }, 1500);
+// 末尾 30KB
+setTimeout(function() { checkRange('/dandan-bridge/', 44400000, 44508539, '末尾(44.4M-44.5M)'); }, 3000);
 </script>
 </body></html>
