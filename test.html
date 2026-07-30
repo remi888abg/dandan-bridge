@@ -1,36 +1,20 @@
-<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{font-family:sans-serif;padding:16px;background:#eef2ff;font-size:13px}.log{padding:8px;border-radius:8px;margin:4px 0;font-family:monospace;font-size:11px;word-break:break-all}.ok{background:#d1fae5}.err{background:#fee2e2}.warn{background:#fef3c7}</style></head>
-<body>
-<h3>主页面诊断 v3</h3>
-<div id="out"></div>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{font-family:monospace;padding:12px;background:#111;color:#0f0;font-size:12px;line-height:1.5}.e{color:red}</style></head>
+<body><h3>诊断 v4: 主页面 JS 执行追踪</h3><div id=l></div>
 <script>
-var out = document.getElementById('out');
-function log(msg, cls) { var d = document.createElement('div'); d.className = 'log '+(cls||'ok'); d.textContent = msg; out.appendChild(d); }
+var l=document.getElementById('l');function p(m,c){var d=document.createElement('div');d.className=c||'';d.textContent=m;l.appendChild(d);}
+window.onerror=function(msg,url,line){p('ERROR: '+msg+' at '+url+':'+line,'e');return false;};
 
-function checkRange(url, start, end, label) {
-  return fetch(url, {headers: {'Range': 'bytes=' + start + '-' + end}})
-    .then(function(r) {
-      log(label + ' HTTP ' + r.status + ' Content-Length: ' + r.headers.get('content-length'), 'ok');
-      return r.text();
-    })
-    .then(function(text) {
-      log(label + ' 实际 ' + text.length + ' 字符', text.length > 0 ? 'ok' : 'err');
-      log(label + ' 首30: ' + JSON.stringify(text.substr(0, 30)), 'ok');
-      log(label + ' 末30: ' + JSON.stringify(text.substr(-30)), 'ok');
-      log(label + ' 包含 init: ' + (text.indexOf('init') >= 0), text.indexOf('init') >= 0 ? 'ok' : 'err');
-      log(label + ' 包含 presetFiles: ' + (text.indexOf('presetFiles') >= 0), text.indexOf('presetFiles') >= 0 ? 'ok' : 'err');
-    })
-    .catch(function(e) { log(label + ' 失败: ' + e.message, 'err'); });
-}
-
-log('开始分段读取主页面 44.5MB...', 'warn');
-
-// 头部 30KB
-checkRange('/dandan-bridge/', 0, 30000, '头部(0-30K)');
-// 中间 30KB
-setTimeout(function() { checkRange('/dandan-bridge/', 22000000, 22030000, '中部(22M-22.03M)'); }, 1500);
-// 末尾 30KB
-setTimeout(function() { checkRange('/dandan-bridge/', 44400000, 44508539, '末尾(44.4M-44.5M)'); }, 3000);
-</script>
-</body></html>
+p('开始检测...');
+p('app-core.js 开始加载...');
+var s=document.createElement('script');
+s.src='/dandan-bridge/app-core.js';
+s.onload=function(){p('app-core.js 加载完成!');setTimeout(function(){
+  p('检查关键对象:');
+  var checks=[['pdfjsLib',typeof window.pdfjsLib],['init',typeof init],['seedPreset',typeof seedPreset],['seedBank',typeof seedBank],['seedPresetFiles',typeof seedPresetFiles],['db',typeof db],['__PRESET_CONFIG__',typeof window.__PRESET_CONFIG__]];
+  checks.forEach(function(c){p(c[0]+': '+c[1],(c[1]==='undefined'||c[1]==='undefined')?'e':'');});
+  p('检查完成');
+},500);};
+s.onerror=function(){p('app-core.js 加载失败!!!','e');};
+document.head.appendChild(s);
+</script></body></html>
