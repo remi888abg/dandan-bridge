@@ -1,50 +1,51 @@
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{font-family:sans-serif;padding:20px;background:#eef2ff}#status{padding:16px;border-radius:12px;margin:10px 0}.ok{background:#d1fae5;color:#065f46}.err{background:#fee2e2;color:#991b1b}</style></head>
+<style>body{font-family:sans-serif;padding:16px;background:#eef2ff;font-size:14px}.log{padding:8px;border-radius:8px;margin:4px 0;font-family:monospace;font-size:12px;word-break:break-all}.ok{background:#d1fae5;color:#065f46}.err{background:#fee2e2;color:#991b1b}.warn{background:#fef3c7;color:#92400e}</style></head>
 <body>
-<h2>诊断页面</h2>
-<div id="status">正在检测...</div>
-<div id="details"></div>
+<h3>主页面诊断 v2</h3>
+<div id="out"></div>
 <script>
-var out = document.getElementById('status');
-var det = document.getElementById('details');
-
-function log(msg, ok) {
+var out = document.getElementById('out');
+function log(msg, cls) {
   var d = document.createElement('div');
-  d.className = ok ? 'ok' : 'err';
-  d.style.cssText = 'padding:12px;border-radius:8px;margin:6px 0';
-  d.textContent = (ok ? 'OK ' : 'FAIL ') + msg;
-  det.appendChild(d);
+  d.className = 'log ' + (cls||'ok');
+  d.textContent = msg;
+  out.appendChild(d);
 }
 
-try {
-  log('JS 执行正常', true);
-  log('typeof init = ' + typeof init, typeof init === 'function');
-  log('navigator.onLine = ' + navigator.onLine, true);
-
-  var testDB = indexedDB.open('test_diag', 1);
-  testDB.onsuccess = function() {
-    log('IndexedDB 可用', true);
-    try {
-      var el = document.getElementById('presetFiles');
-      log('presetFiles 元素存在: ' + (el !== null), el !== null);
-      el = document.getElementById('presetBank');
-      log('presetBank 元素存在: ' + (el !== null), el !== null);
-    } catch(e) {
-      log('DOM 检查出错: ' + e.message, false);
-    }
-    out.textContent = '诊断完成 - ' + new Date().toLocaleTimeString();
-    out.className = 'ok';
-  };
-  testDB.onerror = function(e) {
-    log('IndexedDB 不可用: ' + (e.target.error && e.target.error.message || 'unknown'), false);
-    out.textContent = '诊断失败 - IndexedDB 不可用';
-    out.className = 'err';
-  };
-} catch(e) {
-  log('JS 执行错误: ' + e.message, false);
-  out.textContent = '诊断失败 - JS 错误';
-  out.className = 'err';
-}
+log('Fetching /dandan-bridge/ ...', 'warn');
+fetch('/dandan-bridge/').then(function(r) {
+  log('HTTP ' + r.status, 'ok');
+  log('Content-Length header: ' + r.headers.get('content-length'), 'ok');
+  return r.text().then(function(text) {
+    log('实际收到字符数: ' + text.length, text.length > 40000000 ? 'ok' : 'err');
+    log('头部包含 <!DOCTYPE>: ' + (text.indexOf('<!DOCTYPE') >= 0), 'ok');
+    log('包含 presetFiles id: ' + (text.indexOf('id="presetFiles"') >= 0), 'err');
+    log('包含 presetBank id: ' + (text.indexOf('id="presetBank"') >= 0), 'err');
+    log('包含 function init: ' + (text.indexOf('function init') >= 0), 'err');
+    log('包含 seedPreset(): ' + (text.indexOf('seedPreset()') >= 0), 'err');
+    log('包含 manifest.webmanifest: ' + (text.indexOf('manifest.webmanifest') >= 0), 'err');
+    log('末尾 50 字符: ' + JSON.stringify(text.substr(-50)), 'ok');
+    log('---', 'warn');
+    log('尝试 iframe 加载主页面...', 'warn');
+    var iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:1px;height:1px;opacity:0.01;position:absolute';
+    iframe.src = '/dandan-bridge/';
+    document.body.appendChild(iframe);
+    setTimeout(function() {
+      try {
+        var iw = iframe.contentWindow;
+        log('iframe readyState: ' + iw.document.readyState, 'ok');
+        log('iframe typeof init: ' + typeof iw.init, typeof iw.init === 'function' ? 'ok' : 'err');
+        log('iframe 错误数: ' + iw.document.querySelectorAll(".err").length, 'ok');
+        log('iframe presetFiles: ' + !!iw.document.getElementById('presetFiles'), !!iw.document.getElementById('presetFiles') ? 'ok' : 'err');
+      } catch(e) {
+        log('iframe 失败: ' + e.message, 'err');
+      }
+    }, 5000);
+  });
+}).catch(function(e) {
+  log('Fetch 失败: ' + e.message, 'err');
+});
 </script>
 </body></html>
