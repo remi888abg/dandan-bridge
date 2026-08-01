@@ -1,0 +1,6 @@
+# OCR 分片按字节拼接还原，禁止任何行尾转换，保证字节精确
+app-core-1.js -text
+app-core-2.js -text
+app-core-3.js -text
+app-core-4.js -text
+index.html -text

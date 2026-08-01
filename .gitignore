@@ -1,0 +1,7 @@
+# 本地构建/备份产物，不部署
+index-backup.html
+*.cjs
+combined-chunks.js
+ocr-from-backup.js
+app.js
+app-core.js

@@ -1,6 +1,10 @@
-// Service Worker：单文件离线版专用。缓存应用外壳 + 主 HTML，实现“添加到主屏幕后离线可用”
-// 策略：stale-while-revalidate（先返回缓存，同时后台刷新缓存），保证离线即时可用、线上更新能自动下发
-const CACHE = 'dandan-bridge-offline-v19';
+// Service Worker：云端离线版专用。缓存应用外壳 + 主 HTML，实现"添加到主屏幕后离线可用"
+// 策略分流（v20 起）：
+//   - 导航请求/主 HTML：network-first（网络优先，失败才回退缓存）
+//     原因：旧版对 HTML 也用 cache-first，导致每次发新版用户仍看到旧缓存页面，
+//           必须彻底关闭再开第二次才生效 —— 表现为"修复了但没变化"。
+//   - 静态大资源（OCR 分片、图标、manifest）：cache-first（体积大且极少变动，保证离线秒开）
+const CACHE = 'dandan-bridge-offline-v20';
 const PRECACHE = ['./manifest.webmanifest', './icon-192.png', './icon-512.png', './favicon.ico', './app-core-1.js', './app-core-2.js', './app-core-3.js', './app-core-4.js'];
 
 self.addEventListener('install', (e) => {
@@ -14,10 +18,37 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// 允许页面主动要求 SW 立即接管（配合页面端的更新提示）
+self.addEventListener('message', (e) => {
+  if (e.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  if (url.origin !== self.location.origin) return; // 只缓存同源资源（主 HTML、manifest、icon）
+  if (url.origin !== self.location.origin) return; // 只处理同源资源
+
+  // 是否为"页面文档"请求（地址栏打开、PWA 启动、刷新）
+  const isDoc = e.request.mode === 'navigate' ||
+    (e.request.destination === 'document') ||
+    url.pathname.endsWith('/') ||
+    url.pathname.endsWith('.html');
+
+  if (isDoc) {
+    // 网络优先：始终尝试拿最新 HTML，成功即回写缓存；断网时才用缓存
+    e.respondWith(
+      fetch(e.request).then((res) => {
+        if (res && res.status === 200) {
+          const cp = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, cp));
+        }
+        return res;
+      }).catch(() => caches.match(e.request).then((c) => c || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // 静态资源：缓存优先 + 后台刷新
   e.respondWith(
     caches.match(e.request).then((cached) => {
       const network = fetch(e.request).then((res) => {
@@ -27,7 +58,6 @@ self.addEventListener('fetch', (e) => {
         }
         return res;
       }).catch(() => cached);
-      // 先返回缓存(若有)，同时在后台刷新缓存（既保证离线即时，又保证线上更新能下发）
       return cached || network;
     })
   );
