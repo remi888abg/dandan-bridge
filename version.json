@@ -1,5 +1,5 @@
 {
-  "version": "2026.08.02.5",
-  "note": "听读诊断补强：新增 onboundary 检测，可识别'引擎启动但空转不出声'(云端语音离线/无中文语音包)并给出明确提示；区分'无语音引擎'与'空转'两种情况",
-  "file": "桥牌精练-离线版.html"
+  "version": "2026.08.02.6",
+  "note": "GitHub 部署版接入 Edge TTS 在线朗读：有网络时走 Edge TTS 免费代理出声；无网络时 iPhone/iPad 用本机语音，华为/鸿蒙提示'听读需要联网使用'。设置页新增'在线朗读'配置（接口地址填 Cloudflare Worker URL，密钥免填）。",
+  "file": "index.html"
 }
