@@ -4,7 +4,7 @@
 //     原因：旧版对 HTML 也用 cache-first，导致每次发新版用户仍看到旧缓存页面，
 //           必须彻底关闭再开第二次才生效 —— 表现为"修复了但没变化"。
 //   - 静态大资源（OCR 分片、图标、manifest）：cache-first（体积大且极少变动，保证离线秒开）
-const CACHE = 'dandan-bridge-offline-v28';
+const CACHE = 'dandan-bridge-offline-v29';
 const PRECACHE = ['./manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './favicon.ico', './app-core-1.js', './app-core-2.js', './app-core-3.js', './app-core-4.js'];
 
 self.addEventListener('install', (e) => {
